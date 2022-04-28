@@ -1,0 +1,94 @@
+- hosts: all
+  vars_files:
+    - ./users.yml
+  tasks:
+    - name: rm sources.list
+      file:
+        path: /etc/apt/sources.list
+        state: absent
+    - name: touch sources.list
+      file:
+        path: /etc/apt/sources.list
+        state: touch
+    - name: set yandex repo
+      lineinfile:
+        path: /etc/apt/sources.list
+        line: deb http://mirror.yandex.ru/debian bullseye main
+    - name: apt update
+      apt:
+        update_cache: yes
+        cache_valid_time: 10000000
+    - name: install pkgs
+      apt:
+        pkg:
+          - pip
+          - curl
+          - vim
+          - lynx
+          - docker
+          - docker.io
+          - docker-compose
+    - name: create user
+      user:
+        name: "{{user}}"
+        password: "{{password}}"
+- hosts: 192.168.100.100
+  vars_files:
+    - ./vars.yml
+  tasks:
+    - name: check hostname
+      command: hostname
+      register: h
+    - name: set hostname
+      hostname:
+        name: "{{webl}}"
+      when: h.stdout!="{{webl}}"
+    - name: reboot after hostname
+      reboot:
+      when: h.stdout!="{{webl}}"
+
+- hosts: 192.168.100.254
+  vars_files:
+    - ./vars.yml
+  tasks:
+    - name: check hostname
+      command: hostname
+      register: h
+    - name: set hostname
+      hostname:
+        name: "{{rtrl}}"
+      when: h.stdout!="{{rtrl}}"
+    - name: reboot after hostname
+      reboot:
+      when: h.stdout!="{{rtrl}}"
+    - name: install nginx
+      apt:
+        pkg:
+          - nginx
+    - name: config nginx
+      copy:
+        src: nginx
+        dest: /etc/nginx/sites-available/default
+        mode: "644"
+    - name: start nginx
+      service:
+        name: nginx
+        state: started      
+- hosts: 5.5.5.100
+  vars_files:
+    - ./vars.yml
+  tasks:
+    - name: check hostname
+      command: hostname
+      register: h
+    - name: set hostname
+      hostname:
+        name: "{{rtrr}}"
+      when: h.stdout!="{{rtrr}}"
+    - name: reboot after hostname
+      reboot:
+      when: h.stdout!="{{rtrr}}"
+- hosts: rtr
+  vars_files: ./vars.yml
+  roles:
+    - ipsec

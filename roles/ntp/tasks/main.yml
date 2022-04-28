@@ -1,0 +1,22 @@
+- name: check hostname
+  command: hostname
+  register: h
+- name: install chrony
+  apt:
+    pkg:
+      - chrony
+- name: set pool
+  lineinfile:
+    path: /etc/chrony/chrony.conf
+    regexp: "^pool"
+    line: pool 5.5.5.1
+- name: allow 192.168.100.0/24
+  lineinfile:
+    path: /etc/chrony/chrony.conf
+    state: present
+  when: h.stdout == "{{webl}}"
+- name: allow 172.16.100.0/24
+  lineinfile:
+    path: /etc/chrony/chrony.conf
+    state: present
+  when: h.stdout == "{{webr}}"

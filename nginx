@@ -1,0 +1,11 @@
+upstream backend {
+server 192.168.100.100:80 fail_timeout=10;
+server 172.16.100.100:80 fail_timeout=10;
+}
+server {
+listen 80;
+server_name 4.4.4.100;
+location / {
+proxy_pass http://backend;
+}
+}

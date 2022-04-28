@@ -1,0 +1,46 @@
+- name: install strongswan
+  apt:
+    pkg:
+      - strongswan
+- name: check hostname
+  command: hostname
+  register: h
+- name: copy gre to L
+  copy:
+    src: greL
+    dest: /root/gre
+    mode: "0700"
+  when: h.stdout == "{{rtrl}}"
+- name: copy gre to R
+  copy:
+    src: greR
+    dest: /root/gre
+    mode: "0700"
+  when: h.stdout == "{{rtrr}}"
+- name: line in crontab
+  lineinfile:
+    path: /etc/crontab
+    line: "@reboot root /root/gre"
+    insertafter: EOF 
+- name: up gre
+  command: /bin/bash /root/gre
+  ignore_errors: true
+    #- name: copy ipsec.conf
+    #  copy:
+    #    src: ipsec.conf
+    #    dest: /etc/ipsec.conf
+    #    mode: "0644"
+      #- name: cpoy ipsec.secrets
+      #  copy: 
+      #   src: ./ipsec.secrets
+      #  dest: /etc/ipsec.secrets
+      #   mode: "0644"
+      #- name: start service ipsec
+      #  service:
+      #    name: ipsec
+      #    enabled: yes
+      #    state: restarted
+      #- name: start ipsec
+      #  command: ipsec start
+      #  command: ipsec restart
+  
