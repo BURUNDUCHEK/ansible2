@@ -1,23 +1,233 @@
-- hosts: all
-  vars_files:
-    - ./users.yml
+- hosts: 192.168.100.254
   tasks:
-    - name: rm sources.list
+    - name: remove lines in /etc/apt/sources.list
       file:
         path: /etc/apt/sources.list
         state: absent
-    - name: touch sources.list
-      file:
+    - name: add yandex repo
+      blockinfile:
         path: /etc/apt/sources.list
-        state: touch
-    - name: set yandex repo
-      lineinfile:
-        path: /etc/apt/sources.list
-        line: deb http://mirror.yandex.ru/debian bullseye main
-    - name: apt update
+        create: yes
+        block: deb http://mirror.yandex.ru/debian bullseye main
+    - name: apt update 
       apt:
         update_cache: yes
-        cache_valid_time: 10000000
+        cache_valid_time: 100000000
+    - name: install ufw
+      apt:
+        pkg:
+          - ufw
+    - name: configure ufw ports
+      community.general.ufw:
+        rule: allow
+        port: '{{item}}'
+        proto: tcp
+      loop:
+        - 22
+        - 80
+        - 8080
+        - 1834
+        - 1137
+        - 123
+        - 1111
+    - name: configure ufw protocols
+      community.general.ufw:
+        rule: allow
+        proto: '{{item}}'
+      loop:
+        - gre
+        - esp
+        - ah
+    - name: configure ufw forward policy
+      lineinfile:
+        path: /etc/default/ufw
+        regexp: "^DEFAULT_FORWARD_POLICY"
+        line: DEFAULT_FORWARD_POLICY="ACCEPT"
+    - name: configure ufw ip forward
+      lineinfile:
+        path: /etc/ufw/sysctl.conf
+        line: net/ipv4/ip_forward=1
+    - name: configure masquerading
+      blockinfile:
+        path: /etc/ufw/before.rules
+        block: |
+          *nat
+          :POSTROUTING ACCEPT [0:0] 
+          -A POSTROUTING -s 0.0.0.0/0 -o ens224 -j MASQUERADE
+          COMMIT
+        state: present
+    - name: dont duplicate iptables rules     
+      lineinfile:
+        path: /etc/default/ufw
+        regexp: "^MANAGE_BUILTINS"
+        line: MANAGE_BUILTINS=yes 
+    - name: start ufw.service
+      service:
+        name: ufw
+        enabled: yes
+        state: started
+    - name: ufw enable
+      community.general.ufw:
+        state: enabled
+- hosts: 5.5.5.100
+  tasks:
+    - name: remove lines in /etc/apt/sources.list
+      file:
+        path: /etc/apt/sources.list
+        state: absent
+    - name: add yandex repo
+      blockinfile:
+        path: /etc/apt/sources.list
+        create: yes
+        block: deb http://mirror.yandex.ru/debian bullseye main
+    - name: apt update 
+      apt:
+        update_cache: yes
+        cache_valid_time: 100000000
+    - name: install ufw
+      apt:
+        pkg:
+          - ufw
+    - name: configure ufw ports
+      community.general.ufw:
+        rule: allow
+        port: '{{item}}'
+        proto: tcp
+      loop:
+        - 22
+        - 80
+        - 8080
+        - 1834
+        - 1137
+        - 123
+        - 1111
+    - name: configure udp ufw ports
+      community.general.ufw:
+        rule: allow
+        port: "{{item}}"
+        proto: udp
+      loop:
+        - 4500
+        - 500  
+    - name: configure ufw protocols
+      community.general.ufw:
+        rule: allow
+        proto: '{{item}}'
+      loop:
+        - gre
+        - esp
+        - ah
+    - name: configure ufw forward policy
+      lineinfile:
+        path: /etc/default/ufw
+        regexp: "^DEFAULT_FORWARD_POLICY"
+        line: DEFAULT_FORWARD_POLICY="ACCEPT"
+    - name: configure ufw ip forward
+      lineinfile:
+        path: /etc/ufw/sysctl.conf
+        line: net/ipv4/ip_forward=1
+    - name: configure masquerading
+      blockinfile:
+        path: /etc/ufw/before.rules
+        block: |
+          *nat
+          :POSTROUTING ACCEPT [0:0] 
+          -A POSTROUTING -s 0.0.0.0/0 -o ens224 -j MASQUERADE
+          COMMIT
+        state: present
+    - name: dont duplicate iptables rules     
+      lineinfile:
+        path: /etc/default/ufw
+        regexp: "^MANAGE_BUILTINS"
+        line: MANAGE_BUILTINS=yes 
+    - name: start ufw.service
+      service:
+        name: ufw
+        enabled: yes
+        state: started
+    - name: ufw enable
+      community.general.ufw:
+        state: enabled
+- hosts: 192.168.100.254
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: check hn
+      command: hostname
+      register: h
+    - name: set hn
+      hostname:
+        name: "{{rtrl}}"
+      when: h.stdout != "{{rtrl}}"
+    - name: reboot after hn
+      reboot:
+      when: h.stdout != "{{rtrl}}"
+- hosts: 5.5.5.100
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: check hn
+      command: hostname
+      register: h
+    - name: set hn
+      hostname:
+        name: "{{rtrr}}"
+      when: h.stdout != "{{rtrr}}"
+    - name: reboot after hn
+      reboot:
+      when: h.stdout != "{{rtrr}}"
+- hosts: rtr
+  vars_files:
+  - vars.yml
+  roles:
+    - ipsec
+- hosts: 192.168.100.100
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: check hn
+      command: hostname
+      register: h
+    - name: set hn
+      hostname:
+        name: "{{webl}}"
+      when: h.stdout != "{{webl}}"
+    - name: reboot after hn
+      reboot:
+      when: h.stdout != "{{webl}}"
+- hosts: 172.16.100.100
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: check hn
+      command: hostname
+      register: h
+    - name: set hn
+      hostname:
+        name: "{{webr}}"
+      when: h.stdout != "{{webr}}"
+    - name: reboot after hn
+      reboot:
+      when: h.stdout != "{{webr}}"
+- hosts: web
+  tasks:
+    - name: remove lines in /etc/apt/sources.list
+      file:
+        path: /etc/apt/sources.list
+        state: absent
+    - name: add yandex repo
+      blockinfile:
+        path: /etc/apt/sources.list
+        create: yes
+        block: deb http://mirror.yandex.ru/debian bullseye main
+    - name: apt update 
+      apt:
+        update_cache: yes
+        cache_valid_time: 100000000
+- hosts: alll
+  vars_files: 
+    - users.yml
+  tasks:
     - name: install pkgs
       apt:
         pkg:
@@ -32,35 +242,8 @@
       user:
         name: "{{user}}"
         password: "{{password}}"
-- hosts: 192.168.100.100
-  vars_files:
-    - ./vars.yml
-  tasks:
-    - name: check hostname
-      command: hostname
-      register: h
-    - name: set hostname
-      hostname:
-        name: "{{webl}}"
-      when: h.stdout!="{{webl}}"
-    - name: reboot after hostname
-      reboot:
-      when: h.stdout!="{{webl}}"
-
 - hosts: 192.168.100.254
-  vars_files:
-    - ./vars.yml
-  tasks:
-    - name: check hostname
-      command: hostname
-      register: h
-    - name: set hostname
-      hostname:
-        name: "{{rtrl}}"
-      when: h.stdout!="{{rtrl}}"
-    - name: reboot after hostname
-      reboot:
-      when: h.stdout!="{{rtrl}}"
+  tasks:    
     - name: install nginx
       apt:
         pkg:
@@ -74,21 +257,39 @@
       service:
         name: nginx
         state: started      
-- hosts: 5.5.5.100
-  vars_files:
-    - ./vars.yml
-  tasks:
-    - name: check hostname
-      command: hostname
-      register: h
-    - name: set hostname
-      hostname:
-        name: "{{rtrr}}"
-      when: h.stdout!="{{rtrr}}"
-    - name: reboot after hostname
-      reboot:
-      when: h.stdout!="{{rtrr}}"
-- hosts: rtr
-  vars_files: ./vars.yml
+- hosts: ntp
   roles:
-    - ipsec
+    - ntp
+- hosts: ntp
+  tasks:
+    - name: install keepalived
+      apt:
+        pkg:
+          - keepalived
+- hosts: ntp
+  tasks:
+    - name: copy ntp_check
+      copy:
+        src: ntp_check
+        dest: /root/ntp_check
+        mode: "777"
+- hosts: localhost
+  tasks:
+    - name: keepalived conf
+      copy:
+        src: keepsrv
+        dest: /etc/keepalived/keepalived.conf
+        mode: "0644"
+- hosts: 192.168.100.100
+  tasks:
+    - name: keepalived conf
+      copy:
+        src: keepwebl
+        dest: /etc/keepalived/keepalived.conf
+        mode: "0644" 
+- hosts: ntp
+  tasks:
+    - name: restart keeplived
+      service:
+        name: keepalived
+        state: restarted

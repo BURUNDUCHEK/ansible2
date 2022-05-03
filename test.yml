@@ -1,0 +1,16 @@
+- hosts: 192.168.100.100
+  tasks:
+    - name: 1111 ssh
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#Port"
+        line: Port 1111
+    - name: restart ssh
+      service:
+        name: ssh
+        state: restarted
+    - name: stuff
+      file:
+        path: /root/some
+        state: touch
+

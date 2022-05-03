@@ -1,0 +1,19 @@
+vrrp_instance NTP {
+	state BACKUP
+	interface ens192
+	virtual_router_id 123
+	advert_int 1
+	proirity 9
+	virtual_ipaddress {
+	192.168.100.123/24
+	}
+	track_interface {
+	ens192}
+	}
+vrrp_script ntp_check {
+	script "/root/ntp_check"
+	interval 2
+	timeout 2
+	rise 1
+	fail 2
+	}

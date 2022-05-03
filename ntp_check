@@ -1,0 +1,1 @@
+systemctl status chrony > /dev/null 2>&1

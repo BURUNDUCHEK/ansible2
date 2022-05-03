@@ -2,6 +2,11 @@
   apt:
     pkg:
       - strongswan
+- name:
+  service: 
+    name: strongswan-starter
+    state: restarted
+    enabled: yes
 - name: check hostname
   command: hostname
   register: h
@@ -25,22 +30,21 @@
 - name: up gre
   command: /bin/bash /root/gre
   ignore_errors: true
-    #- name: copy ipsec.conf
-    #  copy:
-    #    src: ipsec.conf
-    #    dest: /etc/ipsec.conf
-    #    mode: "0644"
-      #- name: cpoy ipsec.secrets
-      #  copy: 
-      #   src: ./ipsec.secrets
-      #  dest: /etc/ipsec.secrets
-      #   mode: "0644"
-      #- name: start service ipsec
-      #  service:
-      #    name: ipsec
-      #    enabled: yes
-      #    state: restarted
-      #- name: start ipsec
-      #  command: ipsec start
-      #  command: ipsec restart
+- name: copy ipsec.conf
+  copy:
+    src: ipsec.conf
+    dest: /etc/ipsec.conf
+    mode: "0644"
+- name: cpoy ipsec.secrets
+  copy: 
+    src: ./ipsec.secrets
+    dest: /etc/ipsec.secrets
+    mode: "0644"
+- name: start service ipsec
+  service:
+    name: ipsec
+    enabled: yes
+    state: restarted
+- name: start ipsec
+  command: ipsec restart
   
