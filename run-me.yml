@@ -272,7 +272,7 @@
       copy:
         src: ntp_check
         dest: /root/ntp_check
-        mode: "777"
+        mode: "0755"
 - hosts: localhost
   tasks:
     - name: keepalived conf
